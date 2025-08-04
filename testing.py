@@ -3,11 +3,11 @@ import pandas as pd
 from io import BytesIO
 import os
 
-st.title("📊 Amazon Sales Data Merger and Product-wise Summary")
+st.title("📊 Amazon Data Merger")
 
 # Step 1: Upload Sales Files
-st.header("Step 1: Upload Sales Files (Excel or CSV)")
-sales_files = st.file_uploader("Upload multiple sales reports", type=["xlsx", "xls", "csv"], accept_multiple_files=True)
+st.header("Step 1: Upload Amazon Files (Excel or CSV)")
+sales_files = st.file_uploader("Upload multiple reports", type=["xlsx", "xls", "csv"], accept_multiple_files=True)
 
 # Step 2: Upload Mapping File
 st.header("Step 2: Upload ASIN Mapping File")
@@ -50,7 +50,7 @@ if sales_files and map_file:
                         removed_cols.append(col)
 
             if removed_cols:
-                st.info(f"⚠️ Removed non-numeric columns from '{filename}': {removed_cols}")
+                
                 df = df.drop(columns=removed_cols)
 
             shortname = os.path.splitext(filename)[0][:6]
