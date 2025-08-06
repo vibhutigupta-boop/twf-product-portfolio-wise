@@ -157,8 +157,14 @@ st.title("📊 Amazon Data Merger + Ads Metrics")
 # -------------------------------------------------------------
 # 🔧 CONFIG
 # -------------------------------------------------------------
-MAP_FILE      = r"C:\Users\HP\Yandex.Disk\Amazon automation\Automated\asin_ref_map.csv"
-CAMPAIGN_MAP  = r"C:\Users\HP\Yandex.Disk\Amazon automation\Automated\campaign_product_lookup.csv"
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent      
+MAP_FILE = BASE_DIR / "data" / "asin_ref_map.csv"
+CAMPAIGN_MAP = BASE_DIR / "data" / "campaign_product_lookup.csv"
+
+# MAP_FILE      = r"C:\Users\HP\Yandex.Disk\Amazon automation\Automated\asin_ref_map.csv"
+# CAMPAIGN_MAP  = r"C:\Users\HP\Yandex.Disk\Amazon automation\Automated\campaign_product_lookup.csv"
 AD_NUM_COLS   = ["Impressions", "Clicks", "Spend",
                  "14 Day Total Orders (#)", "14 Day Total Sales"]
 campaign_lkp = pd.read_csv(CAMPAIGN_MAP)
