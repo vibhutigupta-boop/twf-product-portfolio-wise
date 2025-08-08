@@ -13,8 +13,8 @@ flour zero,keto
 flour x,flour x
 c 8714,c 8714
 8714,c 8714
-c 8615,c 8615
-8615,c 8615
+c 8615,t65
+8615,t65
 c 8318,c 8318
 8318,c 8318
 yeast,yeast
@@ -27,7 +27,7 @@ keto,keto
 malabar,malabar porotta
 diabaveda,diabaveda
 amaranth flour,amaranth flour
-amaranth millet,amaranth millet
+amaranth wholemillet,amaranth millet
 sprouted amaranth,sprouted amaranth
 barley dalia,barley dalia
 pearl barley,pearl barley
@@ -84,3 +84,13 @@ millet flour combo,millet flour combo
 millet combo,millet flour combo
 highland,highland
 coconut flour,coconut flour
+almond,almond flour
+bajra flour,bajra flour
+banjra wholemillet,bajra milet
+rye,dark rye
+flax seeds,flax seeds flour
+indie flour,indie
+indie,indie
+quinoa wholemillet,quinoa millet
+quinoa millet,quinoa millet
+rice flour,rice flour
