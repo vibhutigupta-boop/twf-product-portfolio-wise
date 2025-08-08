@@ -305,6 +305,7 @@ if sales_files and ads_files:
         "Organic Purchases", "Organic Sales"
     ]
 
+    
     ordered_final_cols = (
         final_sales_cols          # all the sales & derived columns you already picked
         + ads_cols_inorg          # inorganic metrics
@@ -316,6 +317,10 @@ if sales_files and ads_files:
     for col in ordered_final_cols:
         if col not in final.columns:
             final[col] = 0
+
+    # after you build `final`
+    num_cols = final.select_dtypes("number").columns        # only numeric
+    final[num_cols] = final[num_cols].clip(lower=0)        # no negatives
 
     final = final[ordered_final_cols]
     # ---------------------------------------------------------
@@ -342,3 +347,5 @@ if sales_files and ads_files:
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 else:
     st.info("👉 Upload both Sales files and Ads files to continue.")
+
+
