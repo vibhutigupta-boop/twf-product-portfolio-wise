@@ -105,14 +105,30 @@ if sales_files and ads_files:
     ### PART A – Sales processing  (unchanged from your script)
     ### --------------------------------------------------------
     dfs = {}   # same as before
+    # for file in sales_files:
+    #     filename = file.name
+    #     ext = os.path.splitext(filename)[1].lower()
+    #     try:
+    #         df = pd.read_excel(file) if ext in [".xlsx", ".xls"] else pd.read_csv(file)
+
+    #         if "ASIN" not in df.columns:
+    #             st.warning(f"'{filename}' missing ASIN – skipped"); continue
     for file in sales_files:
         filename = file.name
         ext = os.path.splitext(filename)[1].lower()
         try:
-            df = pd.read_excel(file) if ext in [".xlsx", ".xls"] else pd.read_csv(file)
+            # ⚙️  choose reader
+            if ext in (".xlsx", ".xls"):
+                df = pd.read_excel(file)
+            else:                          # CSV
+                try:                       # 1️⃣ UTF-8 first
+                    df = pd.read_csv(file)
+                except UnicodeDecodeError: # 2️⃣ fallback to Windows-1252
+                    df = pd.read_csv(file, encoding="cp1252")
 
             if "ASIN" not in df.columns:
-                st.warning(f"'{filename}' missing ASIN – skipped"); continue
+                st.warning(f"'{filename}' missing ASIN – skipped")
+                continue
 
             # numeric cleanup (unchanged) …
             removed_cols = []
@@ -217,13 +233,29 @@ if sales_files and ads_files:
     ### --------------------------------------------------------
     ### PART B – Ads processing
     ### --------------------------------------------------------
+    # ad_frames = []
+    # for file in ads_files:
+    #     name, ext = file.name, os.path.splitext(file.name)[1].lower()
+    #     try:
+    #         ad_df = pd.read_excel(file) if ext in [".xlsx", ".xls"] else pd.read_csv(file)
+    #     except Exception as e:
+    #         st.error(f"Error reading ads file '{name}': {e}"); continue
+
     ad_frames = []
     for file in ads_files:
         name, ext = file.name, os.path.splitext(file.name)[1].lower()
         try:
-            ad_df = pd.read_excel(file) if ext in [".xlsx", ".xls"] else pd.read_csv(file)
+            if ext in (".xlsx", ".xls"):
+                ad_df = pd.read_excel(file)
+            else:                                   # CSV → try UTF-8, then CP-1252
+                try:
+                    ad_df = pd.read_csv(file)                   # 1️⃣ UTF-8
+                except UnicodeDecodeError:
+                    ad_df = pd.read_csv(file, encoding="cp1252")  # 2️⃣ fallback
         except Exception as e:
-            st.error(f"Error reading ads file '{name}': {e}"); continue
+            st.error(f"Error reading ads file '{name}': {e}")
+            continue
+
 
         # Normalise column names in case of spaces / case differences
         ad_df.columns = ad_df.columns.str.strip()
