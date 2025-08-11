@@ -52,6 +52,20 @@ ads_files = st.file_uploader("Upload one or more ads reports",
                              accept_multiple_files=True,
                              key="ads")
 
+# --- after both file_uploader blocks ---
+st.divider()
+run_clicked = st.button("Generate Report", type="primary")
+
+# Only proceed when user clicks the button
+if not run_clicked:
+    st.info("Upload your Sales + Ads files, then click **Generate Report**.")
+    st.stop()
+
+# Validate presence of files on click
+if not sales_files or not ads_files:
+    st.warning("Please upload **both** Sales files and Ads files to continue.")
+    st.stop()
+
 # -------------------------------------------------------------
 # LOAD BACK-END MAPPINGS
 # -------------------------------------------------------------
