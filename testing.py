@@ -20,7 +20,11 @@ CAMPAIGN_MAP = BASE_DIR / "data" / "campaign_product_lookup.csv"
 # MAP_FILE      = r"C:\Users\HP\Yandex.Disk\Amazon automation\Automated\asin_ref_map.csv"
 # CAMPAIGN_MAP  = r"C:\Users\HP\Yandex.Disk\Amazon automation\Automated\campaign_product_lookup.csv"
 AD_NUM_COLS   = ["Impressions", "Clicks", "Spend",
-                 "14 Day Total Orders (#)", "14 Day Total Sales"]
+                 "14 Day Total Orders", "14 Day Total Sales"]
+
+missing_sales_cols = []   # metrics absent in all sales files
+missing_ads_cols   = []   # metrics absent in all ads files
+
 campaign_lkp = pd.read_csv(CAMPAIGN_MAP)
 
 if "pattern" not in campaign_lkp.columns or "product_name" not in campaign_lkp.columns:
@@ -166,6 +170,11 @@ if sales_files and ads_files:
     sales_by_prod = (merged_sales
                      .groupby(["Product name", "Portfolio"], as_index=False)
                      .sum(numeric_only=True))
+    
+    # Adjust VC revenue by +5 %
+    if "Ordered Revenue VC" in sales_by_prod.columns:
+        sales_by_prod["Ordered Revenue VC"] *= 1.05
+
     # helper to avoid KeyErrors when a base column is absent
     def safe_get(df, col):
         return df[col] if col in df.columns else 0
@@ -219,16 +228,25 @@ if sales_files and ads_files:
     final_sales_cols = [
     "Product name", "Portfolio",                        # identifiers
     # ---- original SC / VC metrics kept ----
-    # "Sessions - Total SC", "Ordered Product Sales SC", "Total Order Items SC",
-    # "Impressions: Impressions SC", "Clicks: Clicks SC", "Cart Adds: Cart Adds SC",
-    # "Ordered Revenue VC", "Ordered Units VC", "Featured Offer Page Views VC",
+    "Sessions - Total SC", "Ordered Product Sales SC", "Total Order Items SC",
+    "Impressions: Impressions SC", "Clicks: Clicks SC", "Cart Adds: Cart Adds SC",
+    "Ordered Revenue VC", "Ordered Units VC", "Featured Offer Page Views VC",
     # ---- derived columns ----
     "Total Sessions", "Total Product Sales", "Total Purchases",
-    # "VC Impressions", "VC Clicks", "VC Add to Carts",
+    "VC Impressions", "VC Clicks", "VC Add to Carts",
     "Total Impressions", "Total Clicks", "Total Add to Carts",
     ]
 
-    sales_by_prod = sales_by_prod[final_sales_cols] 
+    # ---- guard: fill and remember any missing sales metrics ----
+    missing = [c for c in final_sales_cols if c not in sales_by_prod.columns]
+    if missing:
+        missing_sales_cols.extend(missing)          # remember them
+        for c in missing:
+            sales_by_prod[c] = 0                    # fill with zeros
+
+    # safe slice (won’t raise KeyError)
+    sales_by_prod = sales_by_prod[final_sales_cols]
+
 
     ### --------------------------------------------------------
     ### PART B – Ads processing
@@ -257,8 +275,25 @@ if sales_files and ads_files:
             continue
 
 
-        # Normalise column names in case of spaces / case differences
-        ad_df.columns = ad_df.columns.str.strip()
+        # right after  ad_df.columns = ad_df.columns.str.strip()
+        ad_df.columns = (
+        ad_df.columns.str.strip()
+                    .str.replace(r"\s*\([^)]*\)\s*", "", regex=True)  # remove all (...) parts
+                    .str.replace(r"\s+", " ", regex=True)
+        )
+
+        # --- collapse duplicate columns ---
+        if ad_df.columns.duplicated().any():
+            # non-numeric: keep first occurrence
+            nonnum = ad_df.select_dtypes(exclude="number")
+            nonnum = nonnum.T.groupby(level=0).first().T
+
+            # numeric: coerce then sum duplicates
+            num = ad_df.apply(pd.to_numeric, errors="coerce")
+            num = num.groupby(level=0, axis=1).sum()
+
+            # merge back
+            ad_df = pd.concat([nonnum, num], axis=1)
 
         # Find the campaign name column
         camp_col = None
@@ -272,9 +307,12 @@ if sales_files and ads_files:
         ad_df["Product name"] = ad_df[camp_col].apply(match_product)
         ad_df = ad_df.dropna(subset=["Product name"])
 
-        # Sum metrics (impressions, clicks, etc.) per product in **this file**
         for col in AD_NUM_COLS:
-            if col not in ad_df.columns: ad_df[col] = 0  # fill missing
+            if col not in ad_df.columns:
+                ad_df[col] = 0
+                if col not in missing_ads_cols:         # avoid duplicates
+                    missing_ads_cols.append(col)
+
 
         gp = (ad_df
               .groupby("Product name", as_index=False)[AD_NUM_COLS]
@@ -300,7 +338,7 @@ if sales_files and ads_files:
         columns={c: f"Inorganic {c}" for c in AD_NUM_COLS}
     ).rename(
         columns={
-            "Inorganic 14 Day Total Orders (#)": "Inorganic Purchases",
+            "Inorganic 14 Day Total Orders": "Inorganic Purchases",
             "Inorganic 14 Day Total Sales":      "Inorganic Sales",
         }
     )
@@ -367,6 +405,17 @@ if sales_files and ads_files:
     st.subheader("📋 Combined Summary")
     st.dataframe(final.head(20), use_container_width=True)
 
+    if missing_sales_cols or missing_ads_cols:
+        bullets = []
+        if missing_sales_cols:
+            bullets.append(
+                f"• Sales metrics filled with 0 → {', '.join(missing_sales_cols)}"
+            )
+        if missing_ads_cols:
+            bullets.append(
+                f"• Ads metrics filled with 0 → {', '.join(missing_ads_cols)}"
+            )
+        st.info("Some metrics were missing in your uploads:\n\n" + "\n".join(bullets))
 
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
