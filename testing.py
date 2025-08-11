@@ -407,6 +407,121 @@ if sales_files and ads_files:
     final[num_cols] = final[num_cols].clip(lower=0)        # no negatives
 
     final = final[ordered_final_cols]
+
+
+
+    # ===== PORTFOLIO-WISE SUMMARY (NEW) =====
+
+    # Map Product → Portfolio once (from your ASIN map)
+    prod2port = (
+        asin_map[["Product name", "Portfolio"]]
+        .dropna()
+        .drop_duplicates()
+    )
+
+    # --- Sales → Portfolio base ---
+    sales_by_portfolio = (
+        merged_sales
+        .groupby("Portfolio", as_index=False)
+        .sum(numeric_only=True)
+    )
+
+    # Apply your +5% VC revenue bump at portfolio level too
+    if "Ordered Revenue VC" in sales_by_portfolio.columns:
+        sales_by_portfolio["Ordered Revenue VC"] *= 1.05
+
+    # Recompute derived metrics at portfolio level (so ratios make sense)
+    sales_by_portfolio["Total Sessions"] = (
+        safe_get(sales_by_portfolio, "Sessions - Total SC") +
+        safe_get(sales_by_portfolio, "Featured Offer Page Views VC")
+    )
+    sales_by_portfolio["Total Product Sales"] = (
+        safe_get(sales_by_portfolio, "Ordered Product Sales SC") +
+        safe_get(sales_by_portfolio, "Ordered Revenue VC")
+    )
+    sales_by_portfolio["Total Purchases"] = (
+        safe_get(sales_by_portfolio, "Total Order Items SC") +
+        safe_get(sales_by_portfolio, "Ordered Units VC")
+    )
+
+    base_sessions_p = safe_get(sales_by_portfolio, "Sessions - Total SC").replace(0, 1)
+
+    sales_by_portfolio["VC Impressions"] = (
+        safe_get(sales_by_portfolio, "Featured Offer Page Views VC") *
+        safe_get(sales_by_portfolio, "Impressions: Impressions SC") / base_sessions_p
+    )
+    sales_by_portfolio["VC Clicks"] = (
+        safe_get(sales_by_portfolio, "Featured Offer Page Views VC") *
+        safe_get(sales_by_portfolio, "Clicks: Clicks SC") / base_sessions_p
+    )
+    sales_by_portfolio["VC Add to Carts"] = (
+        safe_get(sales_by_portfolio, "Featured Offer Page Views VC") *
+        safe_get(sales_by_portfolio, "Cart Adds: Cart Adds SC") / base_sessions_p
+    )
+
+    sales_by_portfolio["Total Impressions"] = (
+        safe_get(sales_by_portfolio, "VC Impressions") +
+        safe_get(sales_by_portfolio, "Impressions: Impressions SC")
+    )
+    sales_by_portfolio["Total Clicks"] = (
+        safe_get(sales_by_portfolio, "VC Clicks") +
+        safe_get(sales_by_portfolio, "Clicks: Clicks SC")
+    )
+    sales_by_portfolio["Total Add to Carts"] = (
+        safe_get(sales_by_portfolio, "VC Add to Carts") +
+        safe_get(sales_by_portfolio, "Cart Adds: Cart Adds SC")
+    )
+
+    final_sales_cols_portfolio = [
+        "Portfolio",
+        # "Sessions - Total SC", "Ordered Product Sales SC", "Total Order Items SC",
+        # "Impressions: Impressions SC", "Clicks: Clicks SC", "Cart Adds: Cart Adds SC",
+        # "Ordered Revenue VC", "Ordered Units VC", "Featured Offer Page Views VC",
+        "Total Sessions", "Total Product Sales", "Total Purchases",
+        # "VC Impressions", "VC Clicks", "VC Add to Carts",
+        "Total Impressions", "Total Clicks", "Total Add to Carts",
+    ]
+    for c in final_sales_cols_portfolio:
+        if c not in sales_by_portfolio.columns:
+            sales_by_portfolio[c] = 0
+    sales_by_portfolio = sales_by_portfolio[final_sales_cols_portfolio]
+
+    # --- Ads → Portfolio ---
+    # ads_by_prod already has "Product name" and the "Inorganic …" columns
+    ads_with_port = ads_by_prod.merge(prod2port, on="Product name", how="left")
+    ads_with_port["Portfolio"] = ads_with_port["Portfolio"].fillna("Unmapped")
+
+    ads_by_portfolio = (
+        ads_with_port
+        .groupby("Portfolio", as_index=False)[ads_cols_inorg]
+        .sum(numeric_only=True)
+    )
+
+    # --- Combine (Portfolio) ---
+    final_portfolio = sales_by_portfolio.merge(ads_by_portfolio, on="Portfolio", how="outer")
+
+    def safe_p(col):
+        return final_portfolio[col] if col in final_portfolio.columns else 0
+
+    final_portfolio["Organic Impressions"] = safe_p("Total Impressions") - safe_p("Inorganic Impressions")
+    final_portfolio["Organic Clicks"]      = safe_p("Total Clicks")      - safe_p("Inorganic Clicks")
+    final_portfolio["Organic Purchases"]   = safe_p("Total Purchases")   - safe_p("Inorganic Purchases")
+    final_portfolio["Organic Sales"]       = safe_p("Total Product Sales") - safe_p("Inorganic Sales")
+
+    ordered_final_cols_portfolio = (
+        final_sales_cols_portfolio
+        + ads_cols_inorg
+        + ["Organic Impressions", "Organic Clicks", "Organic Purchases", "Organic Sales"]
+    )
+    for c in ordered_final_cols_portfolio:
+        if c not in final_portfolio.columns:
+            final_portfolio[c] = 0
+
+    num_cols_p = final_portfolio.select_dtypes("number").columns
+    final_portfolio[num_cols_p] = final_portfolio[num_cols_p].clip(lower=0)
+    final_portfolio = final_portfolio[ordered_final_cols_portfolio]
+
+
     # ---------------------------------------------------------
     # Display + download
     # ---------------------------------------------------------
@@ -416,8 +531,12 @@ if sales_files and ads_files:
     st.subheader("📋 Ads Metrics by Product")
     st.dataframe(ads_by_prod.head(20), use_container_width=True)
 
-    st.subheader("📋 Combined Summary")
+    st.subheader("📋 Product Summary (Combined)")
     st.dataframe(final.head(20), use_container_width=True)
+
+
+    st.subheader("📋 Portfolio Summary (Combined)")
+    st.dataframe(final_portfolio.head(20), use_container_width=True)
 
     if missing_sales_cols or missing_ads_cols:
         bullets = []
@@ -433,9 +552,10 @@ if sales_files and ads_files:
 
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        sales_by_prod.to_excel(writer, index=False, sheet_name="Sales")
-        ads_by_prod.to_excel(writer, index=False, sheet_name="Ads")
-        final.to_excel(writer, index=False, sheet_name="Combined")
+        sales_by_prod.to_excel(writer, index=False, sheet_name="Product Sales")
+        ads_by_prod.to_excel(writer, index=False, sheet_name="Product Ads")
+        final.to_excel(writer, index=False, sheet_name="Product Combined")
+        final_portfolio.to_excel(writer, index=False, sheet_name="Portfolio Combined") 
     st.download_button("⬇️ Download Excel",
                        buffer.getvalue(),
                        "Amazon_Sales+Ads_Summary.xlsx",
