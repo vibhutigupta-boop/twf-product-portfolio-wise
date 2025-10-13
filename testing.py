@@ -208,36 +208,36 @@ if sales_files and ads_files:
         safe_get(sales_by_prod, "Ordered Units VC")
     )
 
-    # Avoid divide-by-zero
-    base_sessions = safe_get(sales_by_prod, "Sessions - Total SC").replace(0, 1)
+    # # Avoid divide-by-zero
+    # base_sessions = safe_get(sales_by_prod, "Sessions - Total SC").replace(0, 1)
 
-    sales_by_prod["VC Impressions"] = (
-        safe_get(sales_by_prod, "Featured Offer Page Views VC") *
-        safe_get(sales_by_prod, "Impressions: Impressions SC") / base_sessions
-    )
+    # sales_by_prod["VC Impressions"] = (
+    #     safe_get(sales_by_prod, "Featured Offer Page Views VC") *
+    #     safe_get(sales_by_prod, "Impressions: Impressions SC") / base_sessions
+    # )
 
-    sales_by_prod["VC Clicks"] = (
-        safe_get(sales_by_prod, "Featured Offer Page Views VC") *
-        safe_get(sales_by_prod, "Clicks: Clicks SC") / base_sessions
-    )
+    # sales_by_prod["VC Clicks"] = (
+    #     safe_get(sales_by_prod, "Featured Offer Page Views VC") *
+    #     safe_get(sales_by_prod, "Clicks: Clicks SC") / base_sessions
+    # )
 
-    sales_by_prod["VC Add to Carts"] = (
-        safe_get(sales_by_prod, "Featured Offer Page Views VC") *
-        safe_get(sales_by_prod, "Cart Adds: Cart Adds SC") / base_sessions
-    )
+    # sales_by_prod["VC Add to Carts"] = (
+    #     safe_get(sales_by_prod, "Featured Offer Page Views VC") *
+    #     safe_get(sales_by_prod, "Cart Adds: Cart Adds SC") / base_sessions
+    # )
 
-    sales_by_prod["Total Impressions"] = (
-        sales_by_prod["VC Impressions"] +
-        safe_get(sales_by_prod, "Impressions: Impressions SC")
-    )
-    sales_by_prod["Total Clicks"] = (
-        sales_by_prod["VC Clicks"] +
-        safe_get(sales_by_prod, "Clicks: Clicks SC")
-    )
-    sales_by_prod["Total Add to Carts"] = (
-        sales_by_prod["VC Add to Carts"] +
-        safe_get(sales_by_prod, "Cart Adds: Cart Adds SC")
-    )
+    # sales_by_prod["Total Impressions"] = (
+    #     sales_by_prod["VC Impressions"] +
+    #     safe_get(sales_by_prod, "Impressions: Impressions SC")
+    # )
+    # sales_by_prod["Total Clicks"] = (
+    #     sales_by_prod["VC Clicks"] +
+    #     safe_get(sales_by_prod, "Clicks: Clicks SC")
+    # )
+    # sales_by_prod["Total Add to Carts"] = (
+    #     sales_by_prod["VC Add to Carts"] +
+    #     safe_get(sales_by_prod, "Cart Adds: Cart Adds SC")
+    # )
 
     final_sales_cols = [
     "Product name", "Portfolio",                        # identifiers
@@ -245,10 +245,10 @@ if sales_files and ads_files:
     "Sessions - Total SC", "Ordered Product Sales SC", "Total Order Items SC",
     "Impressions: Impressions SC", "Clicks: Clicks SC", "Cart Adds: Cart Adds SC",
     "Ordered Revenue VC", "Ordered Units VC", "Featured Offer Page Views VC",
-    # ---- derived columns ----
+    # # ---- derived columns ----
     "Total Sessions", "Total Product Sales", "Total Purchases",
-    "VC Impressions", "VC Clicks", "VC Add to Carts",
-    "Total Impressions", "Total Clicks", "Total Add to Carts",
+    # "VC Impressions", "VC Clicks", "VC Add to Carts",
+    # "Total Impressions", "Total Clicks", "Total Add to Carts",
     ]
 
     # ---- guard: fill and remember any missing sales metrics ----
@@ -373,11 +373,17 @@ if sales_files and ads_files:
     def safe(col):
         return final[col] if col in final.columns else 0
 
-    final["Organic Impressions"] = safe("Total Impressions") - safe("Inorganic Impressions")
-    final["Organic Clicks"]      = safe("Total Clicks")      - safe("Inorganic Clicks")
+    # # before we got rid of "Total" Columns
+    # final["Organic Impressions"] = safe("Total Impressions") - safe("Inorganic Impressions")
+    # final["Organic Clicks"]      = safe("Total Clicks")      - safe("Inorganic Clicks")
+    # final["Organic Purchases"]   = safe("Total Purchases")       - safe("Inorganic Purchases")
+    # final["Organic Sales"]       = safe("Total Product Sales") - safe("Inorganic Sales")
+
+    final["Organic Impressions"] = safe("Impressions: Impressions SC") - safe("Inorganic Impressions")
+    final["Organic Clicks"]      = safe("Clicks: Clicks SC")      - safe("Inorganic Clicks")
     final["Organic Purchases"]   = safe("Total Purchases")       - safe("Inorganic Purchases")
     final["Organic Sales"]       = safe("Total Product Sales") - safe("Inorganic Sales")
-
+  
     ads_cols_inorg = [
     "Inorganic Impressions", "Inorganic Clicks", "Inorganic Spend",
     "Inorganic Purchases", "Inorganic Sales",
@@ -444,42 +450,42 @@ if sales_files and ads_files:
         safe_get(sales_by_portfolio, "Ordered Units VC")
     )
 
-    base_sessions_p = safe_get(sales_by_portfolio, "Sessions - Total SC").replace(0, 1)
+    # base_sessions_p = safe_get(sales_by_portfolio, "Sessions - Total SC").replace(0, 1)
 
-    sales_by_portfolio["VC Impressions"] = (
-        safe_get(sales_by_portfolio, "Featured Offer Page Views VC") *
-        safe_get(sales_by_portfolio, "Impressions: Impressions SC") / base_sessions_p
-    )
-    sales_by_portfolio["VC Clicks"] = (
-        safe_get(sales_by_portfolio, "Featured Offer Page Views VC") *
-        safe_get(sales_by_portfolio, "Clicks: Clicks SC") / base_sessions_p
-    )
-    sales_by_portfolio["VC Add to Carts"] = (
-        safe_get(sales_by_portfolio, "Featured Offer Page Views VC") *
-        safe_get(sales_by_portfolio, "Cart Adds: Cart Adds SC") / base_sessions_p
-    )
+    # sales_by_portfolio["VC Impressions"] = (
+    #     safe_get(sales_by_portfolio, "Featured Offer Page Views VC") *
+    #     safe_get(sales_by_portfolio, "Impressions: Impressions SC") / base_sessions_p
+    # )
+    # sales_by_portfolio["VC Clicks"] = (
+    #     safe_get(sales_by_portfolio, "Featured Offer Page Views VC") *
+    #     safe_get(sales_by_portfolio, "Clicks: Clicks SC") / base_sessions_p
+    # )
+    # sales_by_portfolio["VC Add to Carts"] = (
+    #     safe_get(sales_by_portfolio, "Featured Offer Page Views VC") *
+    #     safe_get(sales_by_portfolio, "Cart Adds: Cart Adds SC") / base_sessions_p
+    # )
 
-    sales_by_portfolio["Total Impressions"] = (
-        safe_get(sales_by_portfolio, "VC Impressions") +
-        safe_get(sales_by_portfolio, "Impressions: Impressions SC")
-    )
-    sales_by_portfolio["Total Clicks"] = (
-        safe_get(sales_by_portfolio, "VC Clicks") +
-        safe_get(sales_by_portfolio, "Clicks: Clicks SC")
-    )
-    sales_by_portfolio["Total Add to Carts"] = (
-        safe_get(sales_by_portfolio, "VC Add to Carts") +
-        safe_get(sales_by_portfolio, "Cart Adds: Cart Adds SC")
-    )
+    # sales_by_portfolio["Total Impressions"] = (
+    #     safe_get(sales_by_portfolio, "VC Impressions") +
+    #     safe_get(sales_by_portfolio, "Impressions: Impressions SC")
+    # )
+    # sales_by_portfolio["Total Clicks"] = (
+    #     safe_get(sales_by_portfolio, "VC Clicks") +
+    #     safe_get(sales_by_portfolio, "Clicks: Clicks SC")
+    # )
+    # sales_by_portfolio["Total Add to Carts"] = (
+    #     safe_get(sales_by_portfolio, "VC Add to Carts") +
+    #     safe_get(sales_by_portfolio, "Cart Adds: Cart Adds SC")
+    # )
 
     final_sales_cols_portfolio = [
         "Portfolio",
         # "Sessions - Total SC", "Ordered Product Sales SC", "Total Order Items SC",
-        # "Impressions: Impressions SC", "Clicks: Clicks SC", "Cart Adds: Cart Adds SC",
+        "Impressions: Impressions SC", "Clicks: Clicks SC", "Cart Adds: Cart Adds SC",
         # "Ordered Revenue VC", "Ordered Units VC", "Featured Offer Page Views VC",
         "Total Sessions", "Total Product Sales", "Total Purchases",
         # "VC Impressions", "VC Clicks", "VC Add to Carts",
-        "Total Impressions", "Total Clicks", "Total Add to Carts",
+        # "Total Impressions", "Total Clicks", "Total Add to Carts",
     ]
     for c in final_sales_cols_portfolio:
         if c not in sales_by_portfolio.columns:
@@ -503,8 +509,14 @@ if sales_files and ads_files:
     def safe_p(col):
         return final_portfolio[col] if col in final_portfolio.columns else 0
 
-    final_portfolio["Organic Impressions"] = safe_p("Total Impressions") - safe_p("Inorganic Impressions")
-    final_portfolio["Organic Clicks"]      = safe_p("Total Clicks")      - safe_p("Inorganic Clicks")
+    # # before we removed "Total" Col"
+    # final_portfolio["Organic Impressions"] = safe_p("Total Impressions") - safe_p("Inorganic Impressions")
+    # final_portfolio["Organic Clicks"]      = safe_p("Total Clicks")      - safe_p("Inorganic Clicks")
+    # final_portfolio["Organic Purchases"]   = safe_p("Total Purchases")   - safe_p("Inorganic Purchases")
+    # final_portfolio["Organic Sales"]       = safe_p("Total Product Sales") - safe_p("Inorganic Sales")
+
+    final_portfolio["Organic Impressions"] = safe_p("Impressions: Impressions SC") - safe_p("Inorganic Impressions")
+    final_portfolio["Organic Clicks"]      = safe_p("Clicks: Clicks SC")      - safe_p("Inorganic Clicks")
     final_portfolio["Organic Purchases"]   = safe_p("Total Purchases")   - safe_p("Inorganic Purchases")
     final_portfolio["Organic Sales"]       = safe_p("Total Product Sales") - safe_p("Inorganic Sales")
 
